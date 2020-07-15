@@ -22,53 +22,81 @@ type Edge interface {
 	Weight() float64
 }
 
-type UWGraph map[string]UVertex
-
-func NewUWGraph() UWGraph {
-	return make(UWGraph)
+type UWGraph struct {
+	graph  map[string]UVertex
+	groups map[string]int
 }
 
-func (g UWGraph) Size() int {
-	return len(g)
+func NewUWGraph() *UWGraph {
+	return &UWGraph{
+		graph:  make(map[string]UVertex),
+		groups: make(map[string]int),
+	}
 }
 
-func (g UWGraph) Has(v UVertex) bool {
-	var _, ok = g[v.Id()]
+func (g *UWGraph) groupVertices() {
+	var visited = newSet()
+	var group int
+	for _, v := range g.graph {
+		if !visited.contains(v.Id()) {
+			g.visit(visited, v, group)
+			group++
+		}
+	}
+}
+
+func (g *UWGraph) visit(visited set, v UVertex, group int) {
+	visited.add(v.Id())
+	g.groups[v.Id()] = group
+	for e := v.Edges().Front(); e != nil; e = e.Next() {
+		var node = e.Value.(Edge).To()
+		if !visited.contains(node.Id()) {
+			g.visit(visited, node, group)
+		}
+	}
+}
+
+func (g *UWGraph) Size() int {
+	return len(g.graph)
+}
+
+func (g *UWGraph) Has(v UVertex) bool {
+	var _, ok = g.graph[v.Id()]
 	return ok
 }
 
-func (g UWGraph) HasBoth(a, b UVertex) bool {
+func (g *UWGraph) HasBoth(a, b UVertex) bool {
 	return g.Has(a) && g.Has(b)
 }
 
-func (g UWGraph) Add(v UVertex) {
+func (g *UWGraph) Add(v UVertex) {
 	if !g.Has(v) {
-		g[v.Id()] = v
+		g.graph[v.Id()] = v
 	}
 }
 
-func (g UWGraph) Connect(from, to UVertex, weight float64) error {
+func (g *UWGraph) Connect(from, to UVertex, weight float64) error {
 	if !g.HasBoth(from, to) {
 		return ErrMissingVertex
 	}
-	from = g[from.Id()]
-	to = g[to.Id()]
+	from = g.graph[from.Id()]
+	to = g.graph[to.Id()]
 	from.Edges().PushBack(newEdge(from, to, weight))
 	to.Edges().PushBack(newEdge(to, from, weight))
 	return nil
 }
 
-func (g UWGraph) Connected(from, to UVertex) bool {
+func (g *UWGraph) Adjacent(from, to UVertex) bool {
 	if !g.HasBoth(from, to) {
 		return false
 	}
-	for e := g[from.Id()].Edges().Front(); e != nil; e = e.Next() {
+	for e := g.graph[from.Id()].Edges().Front(); e != nil; e = e.Next() {
 		var v = e.Value.(Edge).To()
 		if v.Equal(to) {
 			return true
 		}
 	}
-	for e := g[to.Id()].Edges().Front(); e != nil; e = e.Next() {
+	for e := g.graph[to.Id()].Edges().Front(); e != nil; e = e.Next() {
 		var v = e.Value.(Edge).To()
 		if v.Equal(from) {
 			return true
@@ -77,11 +105,11 @@ func (g UWGraph) Connected(from, to UVertex) bool {
 	return false
 }
 
-func (g UWGraph) Disconnect(from, to UVertex) {
+func (g *UWGraph) Disconnect(from, to UVertex) {
 	if !g.HasBoth(from, to) {
 		return
 	}
-	var vertices = g[from.Id()].Edges()
+	var vertices = g.graph[from.Id()].Edges()
 	for e := vertices.Front(); e != nil; e = e.Next() {
 		var v = e.Value.(Edge).To()
 		if v.Equal(to) {
@@ -89,7 +117,7 @@ func (g UWGraph) Disconnect(from, to UVertex) {
 			break
 		}
 	}
-	vertices = g[to.Id()].Edges()
+	vertices = g.graph[to.Id()].Edges()
 	for e := vertices.Front(); e != nil; e = e.Next() {
 		var v = e.Value.(Edge).To()
 		if v.Equal(from) {
@@ -99,9 +127,9 @@ func (g UWGraph) Disconnect(from, to UVertex) {
 	}
 }
 
-func (g UWGraph) Cyclic() bool {
+func (g *UWGraph) Cyclic() bool {
 	var visited = newSet()
-	for _, node := range g {
+	for _, node := range g.graph {
 		if !visited.contains(node.Id()) && g.cyclic(node, nil, visited) {
 			return true
 		}
@@ -109,7 +137,7 @@ func (g UWGraph) Cyclic() bool {
 	return false
 }
 
-func (g UWGraph) cyclic(node, parent UVertex, visited set) bool {
+func (g *UWGraph) cyclic(node, parent UVertex, visited set) bool {
 	visited.add(node.Id())
 	for e := node.Edges().Front(); e != nil; e = e.Next() {
 		var next = e.Value.(Edge).To()
@@ -124,9 +152,9 @@ func (g UWGraph) cyclic(node, parent UVertex, visited set) bool {
 	return false
 }
 
-func (g UWGraph) repr() string {
+func (g *UWGraph) repr() string {
 	var buff = &bytes.Buffer{}
-	for _, vertex := range g {
+	for _, vertex := range g.graph {
 		buff.WriteString(vertex.Id())
 		buff.WriteString(" => [ ")
 		for e := vertex.Edges().Front(); e != nil; e = e.Next() {
@@ -147,13 +175,13 @@ type row struct {
 	weight   float64
 }
 
-func (g UWGraph) Path(from, to UVertex) (*Path, error) {
+func (g *UWGraph) Path(from, to UVertex) (*Path, error) {
 	if !g.HasBoth(from, to) {
 		return nil, ErrMissingVertex
 	}
 	var unvisited = newSet()
 	var table = make(map[string]*row)
-	for id, _ := range g {
+	for id := range g.graph {
 		unvisited.add(id)
 		table[id] = &row{
 			previous: nil,
@@ -164,7 +192,7 @@ func (g UWGraph) Path(from, to UVertex) (*Path, error) {
 	table[from.Id()].previous = from
 
 	var queue = list.New() // queue of Vertices
-	queue.PushBack(g[from.Id()])
+	queue.PushBack(g.graph[from.Id()])
 	for queue.Len() > 0 {
 		var el = queue.Front()
 		var node = el.Value.(UVertex)
@@ -187,11 +215,11 @@ func (g UWGraph) Path(from, to UVertex) (*Path, error) {
 		unvisited.remove(node.Id())
 		queue.Remove(el)
 	}
-	return newPath(table, g[to.Id()]), nil
+	return newPath(table, g.graph[to.Id()]), nil
 }
 
-func (g UWGraph) randomVertex() (UVertex, bool) {
-	for _, v := range g {
+func (g *UWGraph) randomVertex() (UVertex, bool) {
+	for _, v := range g.graph {
 		return v, true
 	}
 	return nil, false
@@ -199,7 +227,7 @@ func (g UWGraph) randomVertex() (UVertex, bool) {
 
 // MinTree return minimum spanning tree
 // using Prim's algorithm
-func (g UWGraph) MinTree() UWGraph {
+func (g *UWGraph) MinTree() *UWGraph {
 	var res = NewUWGraph()
 	var v, ok = g.randomVertex()
 	if !ok {

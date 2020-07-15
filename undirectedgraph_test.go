@@ -11,7 +11,7 @@ func TestUWGraph_Add(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		g    UWGraph
+		g    *UWGraph
 		args args
 	}{
 		{
@@ -66,7 +66,7 @@ func TestUWGraph_Connect(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		g       UWGraph
+		g       *UWGraph
 		args    args
 		wantErr bool
 	}{
@@ -128,7 +128,7 @@ func TestUWGraph_Connect(t *testing.T) {
 			}
 		})
 	}
-	if !g.Connected(vertices[0], vertices[1]) {
+	if !g.Adjacent(vertices[0], vertices[1]) {
 		t.Errorf("Connection between %s and %s has not been established",
 			vertices[0].Repr(), vertices[1].Repr())
 	}
@@ -156,7 +156,7 @@ func TestUWGraph_Disconnect(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		g    UWGraph
+		g    *UWGraph
 		args args
 	}{
 		{
@@ -187,7 +187,7 @@ func TestUWGraph_Disconnect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.g.Disconnect(tt.args.from, tt.args.to)
-			if g.Connected(tt.args.from, tt.args.to) {
+			if g.Adjacent(tt.args.from, tt.args.to) {
 				t.Errorf("%s is still connected to %s", tt.args.from.Repr(), tt.args.to.Repr())
 			}
 		})
@@ -212,7 +212,7 @@ func TestUWGraph_Has(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		g    UWGraph
+		g    *UWGraph
 		args args
 		want bool
 	}{
@@ -401,11 +401,84 @@ func TestUWGraph_MinTree(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		if tree.Connected(tt.from, tt.to) != tt.want {
-			t.Errorf("Connected(%s, %s) != %v", tt.from.Id(), tt.to.Id(), tt.want)
+		if tree.Adjacent(tt.from, tt.to) != tt.want {
+			t.Errorf("Adjacent(%s, %s) != %v", tt.from.Id(), tt.to.Id(), tt.want)
 		}
 	}
 	if t.Failed() {
 		t.Logf("\n%s", tree.repr())
+	}
+}
+
+func TestUWGraph_groupVertices(t *testing.T) {
+	var g = NewUWGraph()
+
+	var a = newUV("a")
+	var f = newUV("f")
+	var b = newUV("b")
+	var c = newUV("c")
+	var k = newUV("k")
+
+	var d = newUV("d")
+	var p = newUV("p")
+	var e = newUV("e")
+
+	var x = newUV("x")
+	var y = newUV("y")
+	var z = newUV("z")
+	g.Add(a)
+	g.Add(f)
+	g.Add(b)
+	g.Add(c)
+	g.Add(k)
+	g.Add(d)
+	g.Add(p)
+	g.Add(e)
+	g.Add(x)
+	g.Add(y)
+	g.Add(z)
+	g.Connect(a, f, 2)
+	g.Connect(a, c, 7)
+	g.Connect(a, k, 3)
+	g.Connect(a, b, 1)
+	g.Connect(d, p, 2)
+	g.Connect(p, e, 5)
+	g.Connect(d, e, 9)
+	g.Connect(x, y, 1)
+	g.Connect(z, y, 2)
+	g.groupVertices()
+	type Pointer struct {
+		value   int
+		changed bool
+	}
+	var ak = &Pointer{}
+	var dp = &Pointer{}
+	var xz = &Pointer{}
+	var groups = map[string]*Pointer{
+		"a": ak,
+		"b": ak,
+		"c": ak,
+		"f": ak,
+		"k": ak,
+
+		"d": dp,
+		"p": dp,
+		"e": dp,
+
+		"x": xz,
+		"y": xz,
+		"z": xz,
+	}
+	for v, id := range g.groups {
+		if !groups[v].changed {
+			groups[v].value = id
+			groups[v].changed = true
+		}
+		if groups[v].value != id {
+			t.Fail()
+		}
+	}
+	if t.Failed() {
+		t.Logf("Incorrect groups %v", g.groups)
 	}
 }
