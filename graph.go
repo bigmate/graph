@@ -15,25 +15,25 @@ type Vertex interface {
 	Equal(v Vertex) bool
 }
 
-type DirectedGraph map[Vertex]*LinkedList
+type DiGraph map[Vertex]*LinkedList
 
-func NewDirectedGraph() DirectedGraph {
-	return make(DirectedGraph)
+func NewDiGraph() DiGraph {
+	return make(DiGraph)
 }
 
-func (g DirectedGraph) Has(v Vertex) bool {
+func (g DiGraph) Has(v Vertex) bool {
 	var _, ok = g[v]
 	return ok
 }
 
-func (g DirectedGraph) Edges(v Vertex) (*LinkedList, error) {
+func (g DiGraph) Edges(v Vertex) (*LinkedList, error) {
 	if !g.Has(v) {
 		return nil, ErrMissingVertex
 	}
 	return g[v], nil
 }
 
-func (g DirectedGraph) Add(v Vertex) *LinkedList {
+func (g DiGraph) Add(v Vertex) *LinkedList {
 	if g.Has(v) {
 		return g[v]
 	}
@@ -42,7 +42,7 @@ func (g DirectedGraph) Add(v Vertex) *LinkedList {
 	return ll
 }
 
-func (g DirectedGraph) Remove(v Vertex) {
+func (g DiGraph) Remove(v Vertex) {
 	if !g.Has(v) {
 		return
 	}
@@ -52,7 +52,7 @@ func (g DirectedGraph) Remove(v Vertex) {
 	}
 }
 
-func (g DirectedGraph) Connect(from, to Vertex) error {
+func (g DiGraph) Connect(from, to Vertex) error {
 	if !g.Has(from) || !g.Has(to) {
 		return ErrMissingVertex
 	}
@@ -60,7 +60,7 @@ func (g DirectedGraph) Connect(from, to Vertex) error {
 	return nil
 }
 
-func (g DirectedGraph) Disconnect(from, to Vertex) error {
+func (g DiGraph) Disconnect(from, to Vertex) error {
 	if !g.Has(from) || !g.Has(to) {
 		return ErrMissingVertex
 	}
@@ -68,7 +68,7 @@ func (g DirectedGraph) Disconnect(from, to Vertex) error {
 	return nil
 }
 
-func (g DirectedGraph) repr() string {
+func (g DiGraph) repr() string {
 	var buff = &bytes.Buffer{}
 	for vertex, ll := range g {
 		buff.WriteString(vertex.Id())
@@ -82,19 +82,19 @@ func (g DirectedGraph) repr() string {
 	return buff.String()
 }
 
-func (g DirectedGraph) DFS(v Vertex) <-chan Vertex {
+func (g DiGraph) DFS(v Vertex) <-chan Vertex {
 	var out = make(chan Vertex, 10)
 	go g.traverse(v, out, false)
 	return out
 }
 
-func (g DirectedGraph) BFS(v Vertex) <-chan Vertex {
+func (g DiGraph) BFS(v Vertex) <-chan Vertex {
 	var out = make(chan Vertex, 10)
 	go g.traverse(v, out, true)
 	return out
 }
 
-func (g DirectedGraph) traverse(v Vertex, out chan<- Vertex, useQueue bool) {
+func (g DiGraph) traverse(v Vertex, out chan<- Vertex, useQueue bool) {
 	defer close(out)
 	if !g.Has(v) {
 		return
@@ -122,7 +122,7 @@ func (g DirectedGraph) traverse(v Vertex, out chan<- Vertex, useQueue bool) {
 }
 
 // Sorted implements topological sorting on directed acyclic graph (DAG)
-func (g DirectedGraph) Sorted() ([]Vertex, error) {
+func (g DiGraph) Sorted() ([]Vertex, error) {
 	if g.Cyclic() {
 		return make([]Vertex, 0), ErrCyclicGraph
 	}
@@ -139,7 +139,7 @@ func (g DirectedGraph) Sorted() ([]Vertex, error) {
 	return result, nil
 }
 
-func (g DirectedGraph) sorted(v Vertex, visited set, out *list.List) {
+func (g DiGraph) sorted(v Vertex, visited set, out *list.List) {
 	if !g.Has(v) || visited.contains(v) {
 		return
 	}
@@ -152,7 +152,7 @@ func (g DirectedGraph) sorted(v Vertex, visited set, out *list.List) {
 	visited.add(v)
 }
 
-func (g DirectedGraph) Cyclic() bool {
+func (g DiGraph) Cyclic() bool {
 	var visited = newSet()
 	var visiting = newSet()
 	for parent, _ := range g {
@@ -163,7 +163,7 @@ func (g DirectedGraph) Cyclic() bool {
 	return false
 }
 
-func (g DirectedGraph) cyclic(v Vertex, visiting, visited set) bool {
+func (g DiGraph) cyclic(v Vertex, visiting, visited set) bool {
 	if visiting.contains(v) {
 		return true
 	}

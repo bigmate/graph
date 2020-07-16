@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-func TestGraph_Add_Remove(t *testing.T) {
-	var g = NewDirectedGraph()
+func TestDiGraph_Add_Remove(t *testing.T) {
+	var g = NewDiGraph()
 	var v = &vertex{id: "A"}
 	g.Add(v)
 	if !g.Has(v) {
@@ -33,8 +33,8 @@ func TestGraph_Add_Remove(t *testing.T) {
 	}
 }
 
-func TestGraph_Connect_Disconnect(t *testing.T) {
-	var g = NewDirectedGraph()
+func TestDiGraph_Connect_Disconnect(t *testing.T) {
+	var g = NewDiGraph()
 	var vs = []Vertex{
 		&vertex{"A"},
 		&vertex{"B"},
@@ -61,8 +61,8 @@ func TestGraph_Connect_Disconnect(t *testing.T) {
 	}
 }
 
-func TestGraph_DFS(t *testing.T) {
-	var g = NewDirectedGraph()
+func TestDiGraph_DFS(t *testing.T) {
+	var g = NewDiGraph()
 	var vs = []Vertex{
 		&vertex{"A"},
 		&vertex{"B"},
@@ -92,8 +92,8 @@ func TestGraph_DFS(t *testing.T) {
 	}
 }
 
-func TestGraph_BFS(t *testing.T) {
-	var g = NewDirectedGraph()
+func TestDiGraph_BFS(t *testing.T) {
+	var g = NewDiGraph()
 	var vs = []Vertex{
 		&vertex{"A"},
 		&vertex{"B"},
@@ -133,8 +133,8 @@ func TestGraph_BFS(t *testing.T) {
 	}
 }
 
-func TestGraph_Sorted(t *testing.T) {
-	var g = NewDirectedGraph()
+func TestDiGraph_Sorted(t *testing.T) {
+	var g = NewDiGraph()
 	var vs = []Vertex{
 		&vertex{"P"},
 		&vertex{"A"},
@@ -169,8 +169,8 @@ func TestGraph_Sorted(t *testing.T) {
 	}
 }
 
-func TestGraph_Cyclic(t *testing.T) {
-	var g = NewDirectedGraph()
+func TestDiGraph_Cyclic(t *testing.T) {
+	var g = NewDiGraph()
 	var vs = []Vertex{
 		&vertex{"A"},
 		&vertex{"B"},
@@ -183,26 +183,26 @@ func TestGraph_Cyclic(t *testing.T) {
 	g.Connect(vs[1], vs[2])
 	g.Connect(vs[2], vs[0])
 	if !g.Cyclic() {
-		t.Errorf("Expected DirectedGraph to be cyclic")
+		t.Errorf("Expected DiGraph to be cyclic")
 	}
-	g = NewDirectedGraph()
+	g = NewDiGraph()
 	g.Add(vs[0])
 	g.Connect(vs[0], vs[0])
 	if !g.Cyclic() {
-		t.Errorf("Expected DirectedGraph to be cyclic")
+		t.Errorf("Expected DiGraph to be cyclic")
 	}
 
 	if t.Failed() {
 		t.Log(g.repr())
 	}
 
-	g = NewDirectedGraph()
+	g = NewDiGraph()
 	g.Add(vs[0])
 	g.Connect(vs[0], vs[1])
 	g.Connect(vs[0], vs[2])
 	g.Connect(vs[1], vs[2])
 	if g.Cyclic() {
-		t.Errorf("Expected DirectedGraph not to be cyclic")
+		t.Errorf("Expected DiGraph not to be cyclic")
 	}
 	if t.Failed() {
 		t.Log(g.repr())
